@@ -1,0 +1,32 @@
+From: "IT Helpdesk" <it-helpdesk@company-supportdesk.com>
+To: victim@examplecorp.com
+Reply-To: it-support-harvest@freemail-xyz.ru
+Return-Path: <bounce@malicious-relay.net>
+Subject: URGENT: Your mailbox will be deactivated in 24 hours
+Date: Thu, 18 Sep 2025 03:14:00 +0000
+Message-ID: <deadbeef1234@malicious-relay.net>
+Authentication-Results: mx.examplecorp.com; spf=fail; dkim=fail; dmarc=fail
+MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary="BOUNDARY42"
+
+--BOUNDARY42
+Content-Type: text/html; charset="utf-8"
+
+<html><body>
+<p>Dear Employee,</p>
+<p>Our records indicate your mailbox <b>victim@examplecorp.com</b> will be
+<b>deactivated within 24 hours</b> due to a pending security upgrade.</p>
+<p>To keep your account active, <a href="http://login-verify-portal.tk/secure/update">verify your credentials immediately</a>.</p>
+<p>Failure to act will result in permanent data loss.</p>
+<p>IT Security Team<br/>ExampleCorp</p>
+</body></html>
+
+--BOUNDARY42
+Content-Type: application/octet-stream; name="Invoice_Q3_2025.exe"
+Content-Transfer-Encoding: base64
+Content-Disposition: attachment; filename="Invoice_Q3_2025.exe"
+
+TVqQAAMAAAAEAAAA//8AALgAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+AAAAAgAAAAA4fug4AtAnNIbgBTM0hVGhpcyBwcm9ncmFtIGNhbm5vdCBiZSBydW4gaW4gRE9TIG1v
+ZGUuDQ0KJAAAAAAAAAABQRQAATAEDAF0k6rdAAAAAAAAAA4AAPAACwAYAAA2AAAAAAAAAAAAAAAA
+--BOUNDARY42--
