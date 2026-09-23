@@ -1,79 +1,82 @@
-# 🛡️ SOC Incident Response Simulation Lab
+# 🎣 Phishing Email Analyzer & IOC Extraction Tool
 
-> **A home-built SOC range where I break things on purpose — so I can defend them at work.**
+> **What used to take a SOC analyst 30+ minutes of manual triage, now takes seconds.**
 
-A reproducible home SOC lab **design** on **VirtualBox** with a **Splunk** SIEM at its core — example **SPL detection rules** and **incident response playbooks** mapped to **MITRE ATT&CK**, plus a step-by-step guide to build and validate it yourself. A portfolio reconstruction based on my 2025 SOC simulation project.
+An automated phishing triage pipeline built for blue teams. Drop in a `.eml` file, get back a verdict, a risk score, extracted IOCs, and a ready-to-share markdown report — with threat-intel correlation baked in.
 
-## 🏗️ Lab architecture
+> **Note:** this is a portfolio reconstruction of my 2024 phishing triage project, rebuilt from the original design. It has been tested end-to-end against the bundled synthetic sample in [`samples/`](samples/); wire in your own API keys and samples to validate further.
 
-```mermaid
-flowchart LR
-    subgraph Attacker [Attacker VM - Kali Linux]
-        ART[Atomic Red Team]
-    end
-    subgraph Victim [Victim VM - Windows 10]
-        SYS[Sysmon + Winlogbeat]
-    end
-    subgraph SIEM [SIEM - Ubuntu + Splunk]
-        SPL[SPL Detections]
-        PB[IR Playbooks]
-    end
-    ART -->|T1110 Brute Force<br/>T1078 Valid Accounts<br/>T1021 Lateral Movement| Victim
-    SYS -->|Logs| SIEM
-    SPL -->|Alert| PB
+## ⚡ Demo
+
+```bash
+$ python phishing_analyzer.py samples/suspicious_mailbox_deactivation.eml
+
+[*] Running header forensics…
+[*] Extracting URLs and attachments…
+    → 1 URL(s), 1 attachment(s)
+[!] No VirusTotal key — skipping VT correlation (set --vt-key).
+
+=======================================================
+  🔴 MALICIOUS — escalate to IR, block IOCs  (score 100/100)
+=======================================================
+[+] Report written to triage_report.md
+[+] IOCs: 1 URLs, 1 file hashes, 0 IPs
 ```
 
-| Component | Role |
-|-----------|------|
-| **Kali Linux** (attacker) | Runs Atomic Red Team adversary simulations |
-| **Windows 10** (victim) | Sysmon + Winlogbeat forward security logs |
-| **Ubuntu + Splunk** (SIEM) | Central log ingestion, SPL detections, alerting |
+## 🔍 What it does
 
-## 📁 What's inside
+| Stage | Details |
+|-------|---------|
+| **Header forensics** | Detects From vs Return-Path vs Reply-To mismatches, analyzes the `Received` chain for origin IPs, parses SPF/DKIM/DMARC from `Authentication-Results`, flags date anomalies |
+| **URL extraction** | Pulls URLs from text & HTML bodies, auto-defangs them (`hxxp://evil[.]com`) for safe handling |
+| **Attachment intel** | Extracts attachments, computes SHA-256 fingerprints |
+| **Threat intel** | Correlates URLs & file hashes against **VirusTotal**, sender IPs against **AbuseIPDB** |
+| **Sandbox hook** | Pluggable `SandboxClient` interface — wire in ANY.RUN / Hybrid Analysis for detonation |
+| **Reporting** | Risk score (0–100), severity-weighted verdict, and a markdown triage report ready to paste into a ticket |
 
+## 🚀 Quick start
+
+```bash
+git clone https://github.com/anushniranchan-cyber/phishing-email-analyzer.git
+cd phishing-email-analyzer
+pip install -r requirements.txt
+
+# Basic triage (no API keys needed for header/body analysis)
+python phishing_analyzer.py suspicious.eml --report triage.md
+
+# Full intel correlation
+export VT_API_KEY="your_key" ABUSEIPDB_KEY="your_key"
+python phishing_analyzer.py suspicious.eml --report triage.md
 ```
-├── setup-guide.md              # Step-by-step lab build (VirtualBox → Splunk → log forwarding)
-├── detections/
-│   ├── brute_force.spl         # T1110 — password spraying / guessing
-│   ├── privilege_escalation.spl# T1068 / T1134 — suspicious privesc behavior
-│   └── lateral_movement.spl    # T1021 — PsExec / WinRM / RDP lateral movement
-├── atomic-red-team/
-│   └── mitre_mapping.md        # Every simulated technique → detection → ATT&CK ID
-└── playbooks/
-    ├── phishing_response.md    # End-to-end phishing triage & containment
-    └── malware_containment.md  # Endpoint isolation & eradication runbook
-```
 
-## 🎯 Detection coverage
+## 📊 Sample output
 
-| # | Scenario | ATT&CK | Covered by |
-|---|----------|--------|------------|
-| 1 | Brute force against RDP/SSH | **T1110.001** | `brute_force.spl` |
-| 2 | Privilege escalation via token manipulation | **T1134** | `privilege_escalation.spl` |
-| 3 | Lateral movement via PsExec / WinRM | **T1021.004 / T1021.006** | `lateral_movement.spl` |
+See [`sample_report.md`](sample_report.md) — generated from the bundled sample phish in [`samples/`](samples/).
 
-Validate each detection in your own lab by executing the matching Atomic Red Team technique from [`atomic-red-team/mitre_mapping.md`](atomic-red-team/mitre_mapping.md) and confirming the SPL fires.
+## 🧠 How the risk score works
 
-## 🚀 Reproduce it
+Severity-weighted heuristics, tuned from real SOC triage experience:
 
-Full build instructions in [`setup-guide.md`](setup-guide.md). TL;DR:
+- **HIGH (+25):** envelope spoofing, SPF/DKIM/DMARC fail
+- **MEDIUM (+12):** Reply-To harvesting setup
+- **VT malicious hit (+15 per IOC)**, **AbuseIPDB score ≥ 50 (+10 per IP)**
 
-1. Create 3 VirtualBox VMs (Kali, Windows 10, Ubuntu) on a host-only network
-2. Install Splunk Enterprise (free trial) on Ubuntu, open port 9997
-3. Install Sysmon + Winlogbeat on Windows, forward to Splunk
-4. Install Atomic Red Team on Kali: `Install-AtomicRedTeam.ps1` / `install.sh`
-5. Execute a technique, e.g. `Invoke-AtomicTest T1110 -TestNumbers 1`
-6. Load the SPL in `detections/` and test it against the scenario
+| Score | Verdict |
+|-------|---------|
+| 70–100 | 🔴 MALICIOUS — escalate to IR, block IOCs |
+| 35–69 | 🟠 SUSPICIOUS — analyst review required |
+| 0–34 | 🟢 LIKELY BENIGN — monitor |
 
-## 🧠 What this taught me
+## 🗺️ Roadmap
 
-- Writing detections forces you to think like both attacker **and** defender
-- A detection without a tuned threshold is just a false-positive generator
-- Playbooks are what turn a 2 AM alert into a 20-minute response instead of a 2-hour panic
+- [ ] ANY.RUN / Hybrid Analysis sandbox detonation module
+- [ ] YARA rule scanning on attachments
+- [ ] QR code / image-based phish (QRishing) extraction
+- [ ] Slack/Teams webhook alerting for MALICIOUS verdicts
 
 ## 🛠️ Built with
 
-`Splunk` `SPL` `Atomic Red Team` `MITRE ATT&CK` `VirtualBox` `Sysmon` `Kali Linux`
+`Python` `VirusTotal API` `AbuseIPDB API` `Email Forensics` `Threat Intelligence`
 
 ---
 
