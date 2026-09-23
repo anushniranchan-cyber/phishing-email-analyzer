@@ -3,6 +3,7 @@
 **Subject:** URGENT: Your mailbox will be deactivated in 24 hours
 **From:** it-helpdesk@company-supportdesk.com
 **Date:** Thu, 18 Sep 2025 03:14:00 +0000
+**Analyzed:** 2026-09-23 07:21 UTC
 
 ## Verdict: 🔴 MALICIOUS — escalate to IR, block IOCs  (risk score 100/100)
 
@@ -15,6 +16,7 @@
 | HIGH | SPF | SPF result: fail |
 | HIGH | DKIM | DKIM result: fail |
 | HIGH | DMARC | DMARC result: fail |
+| LOW | Date anomaly | Date header is 8884h off current time — possible forgery. |
 
 ## URLs extracted
 
@@ -26,7 +28,7 @@
 
 | File | SHA-256 | VT malicious |
 |---|---|---|
-| Invoice_Q3_2025.exe | `aa98c9add20784c0…` | n/a (no key) |
+| Invoice_Q3_2025.exe (229B) | `aa98c9add20784c0…` | n/a (no key) |
 
 ## Sender IPs (AbuseIPDB)
 
